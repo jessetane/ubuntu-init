@@ -24,7 +24,7 @@
 #
 # redirect stdout to log
 #
-#exec &> /var/log/cloud-init-output.log 2>&1
+exec &> /var/log/cloud-init-output.log 2>&1
 echo "--- ubuntu-init started ---"
 
 #
