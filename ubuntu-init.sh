@@ -37,7 +37,7 @@ apt-get upgrade -y
 #
 echo "--- creating a non-privileged user ---"
 USER_HOME=/home/"$USER_NAME"
-if [ -z $(grep "^${USER_NAME}:" /etc/passwd) ]
+if [[ -z $(grep "^${USER_NAME}:" /etc/passwd) ]]
 then
   groupadd "$USER_NAME"
   useradd -g"$USER_NAME" -s/bin/bash -d/home/"$USER_NAME" -m "$USER_NAME"
@@ -48,7 +48,7 @@ fi
 # prepend PATH to .bashrc
 #
 BIN_PATH='PATH='"$USER_HOME"'/bin:$PATH'
-if [ -z $(grep "^${BIN_PATH}$" "$USER_HOME"/.bashrc) ]
+if [[ -z $(grep "^${BIN_PATH}$" "$USER_HOME"/.bashrc) ]]
 then
   echo $BIN_PATH >> "$USER_HOME"/.tempbashrc
   cat "$USER_HOME"/.bashrc >> "$USER_HOME"/.tempbashrc
@@ -73,7 +73,7 @@ mkdir -p .init
 # remember to escape ` characters!
 # on RH, force an update by running "sudo update-motd"
 #
-if [ ! -e 00-header ]
+if [[ ! -e 00-header ]]
 then
   chmod a+w /etc/update-motd.d/00-header
   ln -s /etc/update-motd.d/00-header ./
@@ -99,7 +99,7 @@ fi
 #
 echo "--- configuring systemwide environment & shell ---"
 PROFILE=/etc/profile.d/"$USER_NAME".sh
-if [ ! -e "$PROFILE" ]
+if [[ ! -e "$PROFILE" ]]
 then
   PS1='\u@\h:\w\$(git branch 2> /dev/null | grep -e '\''\* '\'' | sed '\''s/^..\(.*\)/ {\1}/'\'')\$ '
   echo 'export PS1='\""$PS1"\" >> "$PROFILE"
@@ -114,7 +114,7 @@ fi
 cat /etc/passwd | while read LINE
 do
   USER_HOME=$(echo "$LINE" | cut -d: -f6)
-  if [ -e "$USER_HOME"/.bashrc ]
+  if [[ -e "$USER_HOME"/.bashrc ]]
   then
     sed -i 's/alias l=.*//g' "$USER_HOME"/.bashrc
   fi
@@ -125,7 +125,7 @@ done
 # some db's want this
 #
 LIMITS=/etc/security/limits.conf
-if [ -z $(grep "app soft nofile 40000" "$LIMITS") ]
+if [[ -z $(grep "app soft nofile 40000" "$LIMITS") ]]
 then
   echo "app soft nofile 40000" >> "$LIMITS"
   echo "app hard nofile 40000" >> "$LIMITS"
