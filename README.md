@@ -1,13 +1,15 @@
-Ubuntu 12.04 Precise cloud-init script designed for ec2 or Virtualbox
+# Cloud-init script for Ubuntu Server 12.04 Precise
+
+## What
+* Create user 'server' to install / run services with
+* Enable Upstart user-jobs & auto start them at boot
+* Install git, build tools, and node
 
 ## Why
-Needed a quick & cross-region way to prepare fresh instances.
+An init-script is effectively a cross-region image. Plus, free docs.
 
 ## How
-On ec2 the script can be passed via the ```user-data``` field to ```run-instances```. If you're using Virtualbox you'll have to get the script onto the machine manually and run it as root.
-
-## Notes
-Currently the script just installs git, build tools (and node js), creates an unprivileged user called 'server' and configures Upstart to handle user jobs.
+On ec2 the script can be passed via the ```user-data``` field to ```run-instances```. You can run the script manually too, though you will need to be root.
 
 ## License
 MIT

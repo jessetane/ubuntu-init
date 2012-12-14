@@ -17,7 +17,7 @@ exec &> /var/log/cloud-init-output.log 2>&1
 #
 echo "--- installing build tools & git ---"
 apt-get update -y
-apt-get install libcap2-bin -y
+#apt-get install libcap2-bin -y
 apt-get install build-essential -y
 apt-get install git -y
 
