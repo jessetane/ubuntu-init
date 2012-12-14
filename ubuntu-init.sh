@@ -27,36 +27,45 @@
 exec &> /var/log/cloud-init-output.log 2>&1
 echo "--- ubuntu-init started ---"
 
+
 #
 echo "--- updating system ---"
 apt-get update -y
+apt-get upgrade -y
 
 
 #
 echo "--- creating a non-privileged user ---"
-groupadd "$USER_NAME"
-useradd -g"$USER_NAME" -s/bin/bash -d/home/"$USER_NAME" -m "$USER_NAME"
 USER_HOME=/home/"$USER_NAME"
+if [ -z $(grep "^${USER_NAME}:" /etc/passwd) ]
+then
+  groupadd "$USER_NAME"
+  useradd -g"$USER_NAME" -s/bin/bash -d/home/"$USER_NAME" -m "$USER_NAME"
+fi
 
 
 #
 # prepend PATH to .bashrc
 #
-echo 'PATH='"$USER_HOME"'/bin:$PATH' >> "$USER_HOME"/.tempbashrc
-cat "$USER_HOME"/.bashrc >> "$USER_HOME"/.tempbashrc
-mv "$USER_HOME"/.tempbashrc "$USER_HOME"/.bashrc
+BIN_PATH='PATH='"$USER_HOME"'/bin:$PATH'
+if [ -z $(grep "^${BIN_PATH}$" "$USER_HOME"/.bashrc) ]
+then
+  echo $BIN_PATH >> "$USER_HOME"/.tempbashrc
+  cat "$USER_HOME"/.bashrc >> "$USER_HOME"/.tempbashrc
+  mv "$USER_HOME"/.tempbashrc "$USER_HOME"/.bashrc
+fi
 
 
 #
 # dirs
 #
 cd "$USER_HOME"
-mkdir src
-mkdir bin
-mkdir lib
-mkdir tmp
-mkdir .ssh
-mkdir .init
+mkdir -p src
+mkdir -p bin
+mkdir -p lib
+mkdir -p tmp
+mkdir -p .ssh
+mkdir -p .init
 
 
 #
@@ -64,29 +73,39 @@ mkdir .init
 # remember to escape ` characters!
 # on RH, force an update by running "sudo update-motd"
 #
-chmod a+w /etc/update-motd.d/00-header
-ln -s /etc/update-motd.d/00-header ./
-FIRST=$(head -n 1 00-header)
-LAST=$(tail -n +2 00-header)
-echo -e "$FIRST\n\necho '$MOTD'\n\n$LAST" > 00-header
+if [ ! -e 00-header ]
+then
+  chmod a+w /etc/update-motd.d/00-header
+  ln -s /etc/update-motd.d/00-header ./
+  FIRST=$(head -n 1 00-header)
+  LAST=$(tail -n +2 00-header)
+  echo -e "$FIRST\n\necho '$MOTD'\n\n$LAST" > 00-header
+fi
 
 
 #
 # ssh
 #
-chmod 700 .ssh
-echo -e "\n$KEY" >> .ssh/authorized_keys
-chmod 600 .ssh/authorized_keys
+if [[ ! -e .ssh/authorized_keys || -z $(grep "$KEY" .ssh/authorized_keys) ]]
+then
+  chmod 700 .ssh
+  echo -e "\n$KEY" >> .ssh/authorized_keys
+  chmod 600 .ssh/authorized_keys
+fi
 
 
 #
 # systemwide shell stuff
 #
 echo "--- configuring systemwide environment & shell ---"
-PS1='\u@\h:\w\$(git branch 2> /dev/null | grep -e '\''\* '\'' | sed '\''s/^..\(.*\)/ {\1}/'\'')\$ '
-echo 'export PS1='\"$PS1\" >> /etc/profile.d/"$USER_NAME".sh
-echo 'export NODE_ENV='"$ENVIRONMENT" >> /etc/profile.d/"$USER_NAME".sh
-echo 'alias l="ls -alhBi --group-directories --color"' >> /etc/profile.d/"$USER_NAME".sh
+PROFILE=/etc/profile.d/"$USER_NAME".sh
+if [ ! -e "$PROFILE" ]
+then
+  PS1='\u@\h:\w\$(git branch 2> /dev/null | grep -e '\''\* '\'' | sed '\''s/^..\(.*\)/ {\1}/'\'')\$ '
+  echo 'export PS1='\""$PS1"\" >> "$PROFILE"
+  echo 'export NODE_ENV='"$ENVIRONMENT" >> "$PROFILE"
+  echo 'alias l="ls -alhBi --group-directories --color"' >> "$PROFILE"
+fi
 
 
 #
@@ -105,8 +124,12 @@ done
 #
 # some db's want this
 #
-echo "app soft nofile 40000" >> /etc/security/limits.conf
-echo "app hard nofile 40000" >> /etc/security/limits.conf
+LIMITS=/etc/security/limits.conf
+if [ -z $(grep "app soft nofile 40000" "$LIMITS") ]
+then
+  echo "app soft nofile 40000" >> "$LIMITS"
+  echo "app hard nofile 40000" >> "$LIMITS"
+fi
 
 
 #
@@ -184,16 +207,19 @@ apt-get install git -y
 #
 # node
 #
-cd src
 NODE_VERSION="v0.8.16"
 NODE_NAME=node-"$NODE_VERSION"-linux-x64
-wget http://nodejs.org/dist/"$NODE_VERSION"/"$NODE_NAME".tar.gz
-tar -xvzf "$NODE_NAME".tar.gz
-rm -rf "$NODE_NAME".tar.gz
-for BIN in $( ls "$NODE_NAME"/bin ); do
-  ln -s ../src/"$NODE_NAME"/bin/$BIN "$USER_HOME"/bin/$BIN;
-done
-NPM="$USER_HOME"/bin/npm
+if [[ ! -d src/"$NODE_VERSION" && ! -e bin/node ]]
+then
+  cd src
+  wget http://nodejs.org/dist/"$NODE_VERSION"/"$NODE_NAME".tar.gz
+  tar -xvzf "$NODE_NAME".tar.gz
+  rm -rf "$NODE_NAME".tar.gz
+  for BIN in $( ls "$NODE_NAME"/bin ); do
+    ln -s ../src/"$NODE_NAME"/bin/$BIN "$USER_HOME"/bin/$BIN;
+  done
+  NPM="$USER_HOME"/bin/npm
+fi
 
 
 #
