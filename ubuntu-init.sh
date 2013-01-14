@@ -60,12 +60,12 @@ fi
 # dirs
 #
 cd "$USER_HOME"
-mkdir -p src
+mkdir -p .ssh
 mkdir -p bin
 mkdir -p lib
+mkdir -p src
 mkdir -p tmp
-mkdir -p .ssh
-mkdir -p .init
+mkdir -p etc/serices
 
 
 #
@@ -130,69 +130,34 @@ fi
 
 
 #
-# upstart currently doesn't enable user jobs by default
+# use upstart to bootstrap user services on net-device-up
 #
-# UPSTART_CONF='<?xml version="1.0" encoding="UTF-8" ?>
-# <!DOCTYPE busconfig PUBLIC
-#   "-//freedesktop//DTD D-BUS Bus Configuration 1.0//EN"
-#   "http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
-# 
-# <busconfig>
-#   <!-- Only the root user can own the Upstart name -->
-#   <policy user="root">
-#     <allow own="com.ubuntu.Upstart" />
-#   </policy>
-# 
-#   <!-- Allow any user to invoke all of the methods on Upstart, its jobs
-#        or their instances, and to get and set properties - since Upstart
-#        isolates commands by user. -->
-#   <policy context="default">
-#     <allow send_destination="com.ubuntu.Upstart"
-#      send_interface="org.freedesktop.DBus.Introspectable" />
-#     <allow send_destination="com.ubuntu.Upstart"
-#      send_interface="org.freedesktop.DBus.Properties" />
-#     <allow send_destination="com.ubuntu.Upstart"
-#      send_interface="com.ubuntu.Upstart0_6" />
-#     <allow send_destination="com.ubuntu.Upstart"
-#      send_interface="com.ubuntu.Upstart0_6.Job" />
-#     <allow send_destination="com.ubuntu.Upstart"
-#      send_interface="com.ubuntu.Upstart0_6.Instance" />
-#   </policy>
-# </busconfig>
-# '
-# echo "$UPSTART_CONF" > /etc/dbus-1/system.d/Upstart.conf
+UPSTART_USER_JOBS='#
+# user-jobs.conf
+#
 
+description "start user jobs when networking is up"
 
-#
-# even when user jobs ARE enabled, upstart still can't 
-# start them at boot so we will hack around this by
-# manually looping over each user's .init folder jobs
-# when networking is up
-#
-# UPSTART_USER_JOBS='#
-# # user-jobs.conf
-# #
-# 
-# description "start user jobs when networking is up"
-# 
-# start on net-device-up
-# 
-# script
-#   cat /etc/passwd | while read LINE
-#   do
-#     USER=$(echo "$LINE" | cut -d: -f1)
-#     USER_HOME=$(echo "$LINE" | cut -d: -f6)
-#     if [ -d "$USER_HOME/.init" ]
-#     then
-#       ls "$USER_HOME"/.init | while read JOB
-#       do
-#         sudo -u "$USER" start ${JOB%.*}
-#       done
-#     fi
-#   done
-# end script
-# '
-# echo "$UPSTART_USER_JOBS" > /etc/init/user-jobs.conf
+start on net-device-up
+
+script
+  cat /etc/passwd | while read LINE
+  do
+    USER=$(echo "$LINE" | cut -d: -f1)
+    USER_HOME=$(echo "$LINE" | cut -d: -f6)
+    SERVICES="$USER_HOME"/lib/
+    if [ -d "$SERVICES" ]
+    then
+      cd "$SERVICES"
+      ls | while read JOB
+      do
+        sudo -u "$USER" ./"$JOB"
+      done
+    fi
+  done
+end script
+'
+echo "$UPSTART_USER_JOBS" > /etc/init/user-jobs.conf
 
 
 #
@@ -204,22 +169,8 @@ apt-get install git -y
 #
 # node
 #
-# NODE_VERSION="v0.8.16"
-# NODE_NAME=node-"$NODE_VERSION"-linux-x64
-# if [[ ! -d src/"$NODE_VERSION" && ! -e bin/node ]]
-# then
-#   cd src
-#   wget http://nodejs.org/dist/"$NODE_VERSION"/"$NODE_NAME".tar.gz
-#   tar -xvzf "$NODE_NAME".tar.gz
-#   rm -rf "$NODE_NAME".tar.gz
-#   ls "$NODE_NAME"/bin | while read BIN
-#   do
-#     ln -s ../src/"$NODE_NAME"/bin/$BIN "$USER_HOME"/bin/$BIN
-#   done
-#   NPM="$USER_HOME"/bin/npm
-# fi
 NODE_INSTALLER='VERSION="$1"
-PREFIX=~
+PREFIX='$"USER_HOME"'
 OS="linux"
 NODE_NAME=node-"$VERSION"-"$OS"-x64
 
@@ -241,7 +192,7 @@ do
 done'
 echo "$NODE_INSTALLER" > bin/install-node
 chmod +x bin/install-node
-bin/install-node v0.9.5
+bin/install-node v0.9.6
 NPM=bin/npm
 
 
