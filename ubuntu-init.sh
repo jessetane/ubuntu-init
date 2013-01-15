@@ -88,7 +88,7 @@ then
   cat /etc/passwd | while read LINE
   do
     HOME_DIR=$(echo "$LINE" | cut -d: -f6)
-    echo ". $PROFILE" >> "$HOME_DIR"/.profile
+    [ -e "$HOME_DIR"/.profile ] && echo ". $PROFILE" >> "$HOME_DIR"/.profile
   done
 fi
 
