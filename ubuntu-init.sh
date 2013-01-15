@@ -4,9 +4,7 @@
 #
 
 
-#
 # default vars
-#
 [ -z $KEY ] && KEY="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC46reWpJBzs+NpLTrpEP/wnBqSvp1tZIb9iotEwU210SBEXxC80R2SyH0dFcWmXyH6n+6QSy3yz246+cqu4lVuISAsCNfMiN87tmJzS6EAQuOOChes9Fv11a6tlIx8rUyuEdYx/hMkRC9/xfdpnTdCFbwPRJ9Z8i0xf8rV7Eg7zs5QQdniVZ7opxtppeEuX0wrtxC1haWmgBqIJ3uKWQQOJ+1TQH6xI0ds1osDV6y3VCYkAQHmxrWpiNQzHW0YOdty6IbOYb5mG5BEi0PtgrkAjH3IEnSM65571lgZRH/y1JQ/CTHDM03bMINce+AJNqx50xB6o7ycvl1pBKeyT3nL jessetane@Trusty-Steve-V.local"
 [ -z $USER_NAME ] && USER_NAME="server"
 [ -z $ENVIRONMENT ] && ENVIRONMENT="production"
@@ -21,9 +19,7 @@
 '
 
 
-#
 # redirect stdout to log
-#
 exec &> /var/log/cloud-init-output.log 2>&1
 echo "--- ubuntu-init started ---"
 
@@ -119,6 +115,7 @@ apt-get install git -y
 # install a node version manager and v0.9.6
 curl -o bin/ninstall https://raw.github.com/jessetane/ninstall/master/ninstall && chmod +x bin/ninstall
 sed -i "s/OS=.*/OS=\"linux\"/" bin/ninstall
+sed -i "s/PREFIX=.*/PREFIX=$USER_HOME/" bin/ninstall
 bin/ninstall v0.8.17
 bin/ninstall v0.9.6
 NPM=bin/npm
