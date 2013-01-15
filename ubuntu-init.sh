@@ -72,7 +72,7 @@ then
 fi
 
 
-# systemwide shell stuff
+# systemwide stuff
 echo "--- configuring systemwide environment & shell ---"
 PROFILE=/etc/profile.d/"$USER_NAME".sh
 if [[ ! -e "$PROFILE" ]]
@@ -113,12 +113,23 @@ apt-get install git -y
 
 
 # install a node version manager and v0.9.6
+echo "--- installing node ---"
 curl -o bin/ninstall https://raw.github.com/jessetane/ninstall/master/ninstall && chmod +x bin/ninstall
 sed -i "s/OS=.*/OS=\"linux\"/" bin/ninstall
 sed -i "s|PREFIX=.*|PREFIX=$USER_HOME|" bin/ninstall
 bin/ninstall v0.8.17
 bin/ninstall v0.9.6
 NPM=bin/npm
+
+
+# install a process monitor
+echo "--- installing mon ---"
+git clone https://github.com/visionmedia/mon.git
+mv mon src/mon
+cd src/mon
+make
+cd "$USER_HOME"
+ln -s ../src/mon/mon bin/mon
 
 
 # chown everything in the new user's home folder and we're done
