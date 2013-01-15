@@ -115,7 +115,7 @@ apt-get install git -y
 # install a node version manager and v0.9.6
 curl -o bin/ninstall https://raw.github.com/jessetane/ninstall/master/ninstall && chmod +x bin/ninstall
 sed -i "s/OS=.*/OS=\"linux\"/" bin/ninstall
-sed -i "s/PREFIX=.*/PREFIX=$USER_HOME/" bin/ninstall
+sed -i "s|PREFIX=.*|PREFIX=$USER_HOME|" bin/ninstall
 bin/ninstall v0.8.17
 bin/ninstall v0.9.6
 NPM=bin/npm
