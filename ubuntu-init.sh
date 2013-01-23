@@ -72,25 +72,31 @@ then
 fi
 
 
-# systemwide stuff
-echo "--- configuring systemwide environment & shell ---"
-PROFILE=/etc/profile.d/"$USER_NAME".sh
-if [[ ! -e "$PROFILE" ]]
-then
-  PS1='\u@\h:\w\$(git branch 2> /dev/null | grep -e '\''\* '\'' | sed '\''s/^..\(.*\)/ {\1}/'\'')\$ '
-  echo 'export PS1='\""$PS1"\" >> "$PROFILE"
-  echo 'export NODE_ENV='"$ENVIRONMENT" >> "$PROFILE"
-  echo 'alias l="ls -alhBi --group-directories --color"' >> "$PROFILE"
+# shell setup
+echo "--- .bashrc ---"
+PS1='\u@\h:\w\$(git branch 2> /dev/null | grep -e '\''\* '\'' | sed '\''s/^..\(.*\)/ {\1}/'\'')\$ '
+
+# for each user with a .bashrc file
+cat /etc/passwd | while read LINE
+do
+  HOME_DIR=$(echo "$LINE" | cut -d: -f6)
+  BASHRC="$HOME_DIR"/.bashrc
+  if [[ -e "$BASHRC" && -z $(grep "NODE_ENV" "$BASHRC") ]]
+  then
   
-  # HACK: since ubuntu ships with an intense .bashrc 
-  # that overwrites a lot of our global .profile, we re-source
-  # the global from .profile, which runs after .bashrc
-  cat /etc/passwd | while read LINE
-  do
-    HOME_DIR=$(echo "$LINE" | cut -d: -f6)
-    [ -e "$HOME_DIR"/.profile ] && echo ". $PROFILE" >> "$HOME_DIR"/.profile
-  done
-fi
+    # these should work even for non-interactive shells
+    TEMP="$HOME_DIR"/temp
+    echo "export NODE_ENV=$ENVIRONMENT" >> "$TEMP"
+    echo "function l { ls -alhBi --group-directories --color \"$@\"; }" >> "$TEMP"
+    cat "$BASHRC" >> "$TEMP"
+    cat "$TEMP" > "$BASHRC"
+    rm "$TEMP"
+    
+    # interactive only
+    echo "unalias l" >> "$BASHRC"
+    echo "export PS1=\"$PS1\"" >> "$BASHRC"
+  fi
+done
 
 
 # default max open files is kinda low
@@ -103,6 +109,7 @@ fi
 
 
 # run $USER/init scripts on net-device-up
+echo "--- upstarter ---"
 curl -o /etc/init/upstarter.conf https://raw.github.com/jessetane/upstarter/master/upstarter.conf
 
 
