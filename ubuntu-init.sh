@@ -87,7 +87,7 @@ do
     # these should work even for non-interactive shells
     TEMP="$HOME_DIR"/temp
     echo "export NODE_ENV=$ENVIRONMENT" >> "$TEMP"
-    echo "function l { ls -alhBi --group-directories --color \"$@\"; }" >> "$TEMP"
+    echo 'function l { ls -alhBi --group-directories --color "$@"; }' >> "$TEMP"
     cat "$BASHRC" >> "$TEMP"
     cat "$TEMP" > "$BASHRC"
     rm "$TEMP"
