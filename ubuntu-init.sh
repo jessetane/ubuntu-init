@@ -86,6 +86,7 @@ do
   
     # these should work even for non-interactive shells
     TEMP="$HOME_DIR"/temp
+    echo '[ -d "$HOME/bin" ] && PATH="$HOME/bin:$PATH"' >> "$TEMP"
     echo "export NODE_ENV=$ENVIRONMENT" >> "$TEMP"
     echo 'function l { ls -alhBi --group-directories --color "$@"; }' >> "$TEMP"
     cat "$BASHRC" >> "$TEMP"
@@ -106,6 +107,10 @@ then
   echo "app soft nofile 40000" >> "$LIMITS"
   echo "app hard nofile 40000" >> "$LIMITS"
 fi
+
+
+# point port 80 at 8080
+iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080
 
 
 # run $USER/init scripts on net-device-up
