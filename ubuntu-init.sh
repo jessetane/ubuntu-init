@@ -144,21 +144,6 @@ then
 fi
 
 
-# compile erlang from source
-# if [ ! -d src/otp_src_R15B01 ]
-# then
-#   wget http://erlang.org/download/otp_src_R15B01.tar.gz
-#   tar zxvf otp_src_R15B01.tar.gz
-#   rm otp_src_R15B01.tar.gz
-#   mv otp_src_R15B01 src/otp_src_R15B01
-#   cd src/otp_src_R15B01
-#   ./configure --prefix="$HOME"
-#   make
-#   make install
-#   cd "$HOME"
-# fi
-
-
 # install an erlang version manager and R15B01
 if [ ! -e bin/kerl ]
 then
