@@ -4,17 +4,17 @@
 #
 
 
-# default vars
+# defaults - you should change these or define them yourself before running this script
 [ -z $KEY ] && KEY="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC46reWpJBzs+NpLTrpEP/wnBqSvp1tZIb9iotEwU210SBEXxC80R2SyH0dFcWmXyH6n+6QSy3yz246+cqu4lVuISAsCNfMiN87tmJzS6EAQuOOChes9Fv11a6tlIx8rUyuEdYx/hMkRC9/xfdpnTdCFbwPRJ9Z8i0xf8rV7Eg7zs5QQdniVZ7opxtppeEuX0wrtxC1haWmgBqIJ3uKWQQOJ+1TQH6xI0ds1osDV6y3VCYkAQHmxrWpiNQzHW0YOdty6IbOYb5mG5BEi0PtgrkAjH3IEnSM65571lgZRH/y1JQ/CTHDM03bMINce+AJNqx50xB6o7ycvl1pBKeyT3nL jessetane@Trusty-Steve-V.local"
-[ -z $USER_NAME ] && USER_NAME="server"
+[ $USER == "root" ] && USER="server"
 [ -z $ENVIRONMENT ] && ENVIRONMENT="production"
 [ -z $MOTD ] && MOTD='
-       ___.                 __         
-   __ _\  |__  __ __  _____/  |_ __ __ 
+       ___.                 __
+   __ _\  |__  __ __  _____/  |_ __ __
   |  |  \ __ \|  |  \/    \   __\  |  \
   |  |  / \_\ \  |  /   |  \  | |  |  /
-  |____/|___  /____/|___|  /__| |____/ 
-            \/           \/            
+  |____/|___  /____/|___|  /__| |____/
+            \/           \/
 
 '
 
@@ -32,16 +32,16 @@ apt-get upgrade -y
 
 #
 echo "--- creating a non-privileged user ---"
-USER_HOME=/home/"$USER_NAME"
-if [[ -z $(grep "^${USER_NAME}:" /etc/passwd) ]]
+export HOME="/home/$USER"
+if [[ -z $(grep "^${USER}:" /etc/passwd) ]]
 then
-  groupadd "$USER_NAME"
-  useradd -g"$USER_NAME" -s/bin/bash -d/home/"$USER_NAME" -m "$USER_NAME"
+  groupadd "$USER"
+  useradd -g"$USER" -s/bin/bash -d/home/"$USER" -m "$USER"
 fi
 
 
 # dirs
-cd "$USER_HOME"
+cd "$HOME"
 mkdir -p .ssh
 mkdir -p bin
 mkdir -p lib
@@ -113,39 +113,79 @@ fi
 iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080
 
 
+#
+echo "--- installing system packages ---"
+apt-get install build-essential -y
+apt-get install git -y
+apt-get install libncurses5-dev -y
+apt-get install openssl -y
+apt-get install libssl-dev -y
+apt-get install libssl0.9.8 -y
+apt-get install libc6-dev-i386 -y
+
+
 # run $USER/init scripts on net-device-up
-echo "--- upstarter ---"
 curl -o /etc/init/upstarter.conf https://raw.github.com/jessetane/upstarter/master/upstarter.conf
 
 
-#
-echo "--- installing packages ---"
-apt-get install build-essential -y
-apt-get install git -y
+echo "--- installing user packages ---"
 
 
-# install a node version manager and v0.9.6
-echo "--- installing node ---"
-curl -o bin/ninstall https://raw.github.com/jessetane/ninstall/master/ninstall && chmod +x bin/ninstall
-sed -i "s/OS=.*/OS=\"linux\"/" bin/ninstall
-sed -i "s|PREFIX=.*|PREFIX=$USER_HOME|" bin/ninstall
-bin/ninstall v0.8.17
-bin/ninstall v0.9.6
-NPM=bin/npm
+# install a node version manager and v0.8.18
+if [ ! -e bin/ninstall ]
+then
+  curl -o bin/ninstall https://raw.github.com/jessetane/ninstall/master/ninstall
+  chmod +x bin/ninstall
+  sed -i "s/OS=.*/OS=\"linux\"/" bin/ninstall
+  sed -i 's|PREFIX=.*|PREFIX="$HOME"|' bin/ninstall
+  bin/ninstall v0.8.18
+  bin/ninstall v0.9.8
+  NPM=bin/npm
+fi
+
+
+# compile erlang from source
+# if [ ! -d src/otp_src_R15B01 ]
+# then
+#   wget http://erlang.org/download/otp_src_R15B01.tar.gz
+#   tar zxvf otp_src_R15B01.tar.gz
+#   rm otp_src_R15B01.tar.gz
+#   mv otp_src_R15B01 src/otp_src_R15B01
+#   cd src/otp_src_R15B01
+#   ./configure --prefix="$HOME"
+#   make
+#   make install
+#   cd "$HOME"
+# fi
+
+
+# install an erlang version manager and R15B01
+if [ ! -e bin/kerl ]
+then
+  curl -o bin/kerl https://raw.github.com/spawngrid/kerl/master/kerl
+  sed -i 's|^KERL_BASE_DIR=.*|KERL_BASE_DIR="$HOME"/src/kerl|' bin/kerl
+  chmod +x bin/kerl
+  bin/kerl build R15B01 r15b01
+  bin/kerl install r15b01 lib/erlang/r15b01
+  echo '. "$HOME"/lib/erlang/r15b01/activate' | cat - .bashrc > temp
+  cat temp > .bashrc && rm temp
+fi
 
 
 # install a process monitor
-echo "--- installing mon ---"
-git clone https://github.com/visionmedia/mon.git
-mv mon src/mon
-cd src/mon
-make
-cd "$USER_HOME"
-ln -s ../src/mon/mon bin/mon
+if [ ! -e bin/mon ]
+then
+  git clone https://github.com/visionmedia/mon.git
+  mv mon src/mon
+  cd src/mon
+  make
+  cd "$HOME"
+  ln -s ../src/mon/mon bin/mon
+fi
 
 
 # chown everything in the new user's home folder and we're done
-chown -R "$USER_NAME":"$USER_NAME" "$USER_HOME"
+chown -R "$USER":"$USER" "$HOME"
 
 
 #
